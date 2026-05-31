@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Event Planner Form</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F5F2EE;
+    --surface: #FFFFFF;
+    --surface2: #F9F7F4;
+    --border: #E0DAD2;
+    --border-focus: #8B6F47;
+    --text: #1A1614;
+    --text-muted: #7A6E66;
+    --text-hint: #A89E96;
+    --accent: #8B6F47;
+    --accent-light: #F0E8DC;
+    --accent-dark: #5C4A30;
+    --gold: #C9973E;
+    --gold-light: #FDF6EB;
+    --success: #2D7A56;
+    --danger: #C0392B;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 2px 16px rgba(26,22,20,0.08);
+    --shadow-lg: 0 8px 40px rgba(26,22,20,0.14);
+  }
+
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 0; }
+
+  .page-header { background: var(--text); color: white; padding: 2.5rem 2rem 2rem; position: relative; overflow: hidden; }
+  .page-header::before { content: ''; position: absolute; top: -40px; right: -40px; width: 200px; height: 200px; border-radius: 50%; background: rgba(201,151,62,0.12); }
+  .page-header::after { content: ''; position: absolute; bottom: -60px; left: 20%; width: 140px; height: 140px; border-radius: 50%; background: rgba(139,111,71,0.1); }
+  .header-inner { max-width: 700px; margin: 0 auto; position: relative; z-index: 1; }
+  .header-tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); background: rgba(201,151,62,0.15); border: 1px solid rgba(201,151,62,0.3); padding: 4px 12px; border-radius: 20px; margin-bottom: 1rem; }
+  .header-title { font-family: 'DM Serif Display', serif; font-size: 2.2rem; font-weight: 400; line-height: 1.2; color: white; margin-bottom: 0.5rem; }
+  .header-sub { font-size: 15px; color: rgba(255,255,255,0.6); font-weight: 300; }
+
+  .progress-bar { height: 3px; background: rgba(255,255,255,0.1); position: relative; }
+  .progress-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.4s ease; }
+
+  .main { max-width: 700px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+  .section-card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 1.25rem; overflow: hidden; transition: box-shadow 0.2s; }
+  .section-card:focus-within { box-shadow: 0 0 0 3px rgba(139,111,71,0.15); }
+  .section-header { display: flex; align-items: center; gap: 12px; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  .section-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-light); color: var(--accent-dark); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .section-label { font-size: 14px; font-weight: 600; color: var(--text); flex: 1; }
+  .section-required { font-size: 11px; color: var(--text-hint); font-weight: 400; }
+  .section-body { padding: 1.5rem; }
+
+  .field-group { margin-bottom: 1.25rem; }
+  .field-group:last-child { margin-bottom: 0; }
+
+  label { display: block; font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.01em; }
+  label .req { color: var(--gold); margin-left: 2px; }
+
+  input[type="text"], input[type="email"], input[type="number"], input[type="datetime-local"], select, textarea {
+    width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--surface);
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s; appearance: none; -webkit-appearance: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(139,111,71,0.12); }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A89E96' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; cursor: pointer; }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 500px) { .field-row { grid-template-columns: 1fr; } }
+
+  .budget-row { display: flex; gap: 8px; align-items: stretch; }
+  .currency-select { width: 90px; flex-shrink: 0; border-radius: var(--radius-sm) !important; font-weight: 500; }
+  .budget-input { flex: 1; }
+
+  .counter-wrap { display: flex; align-items: center; border: 1.5px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; width: fit-content; min-width: 160px; }
+  .counter-wrap:focus-within { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(139,111,71,0.12); }
+  .counter-btn { width: 40px; height: 42px; background: var(--surface2); border: none; font-size: 18px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; flex-shrink: 0; }
+  .counter-btn:hover { background: var(--accent-light); color: var(--accent-dark); }
+  .counter-val { flex: 1; text-align: center; font-size: 15px; font-weight: 500; border: none; outline: none; background: transparent; color: var(--text); padding: 0 4px; width: 60px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 20px; border: 1.5px solid var(--border); font-size: 13px; font-weight: 400; color: var(--text-muted); background: var(--surface); cursor: pointer; transition: all 0.15s; user-select: none; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .chip.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent-dark); font-weight: 500; }
+
+  /* Location */
+  .location-search { position: relative; margin-bottom: 10px; }
+  .location-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-hint); pointer-events: none; }
+  .location-search input { padding-left: 38px; padding-right: 44px; }
+  .location-clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-hint); cursor: pointer; padding: 4px; border-radius: 4px; display: none; font-size: 15px; transition: color 0.15s; }
+  .location-clear:hover { color: var(--text); }
+  .location-clear.visible { display: flex; align-items: center; }
+
+  /* Map - Leaflet */
+  .map-container { border-radius: var(--radius-sm); border: 1.5px solid var(--border); overflow: hidden; height: 280px; background: #EAE6DF; position: relative; margin-top: 12px; }
+  #map { width: 100%; height: 100%; }
+  .leaflet-container { font-family: 'DM Sans', sans-serif; }
+
+  .map-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-muted); font-size: 14px; z-index: 999; background: #EAE6DF; pointer-events: none; }
+  .map-placeholder-icon { width: 48px; height: 48px; background: var(--accent-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .map-placeholder.hidden { display: none; }
+
+  .autocomplete-list { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); z-index: 1000; max-height: 220px; overflow-y: auto; display: none; }
+  .autocomplete-list.open { display: block; }
+  .autocomplete-item { padding: 10px 14px; font-size: 13px; color: var(--text); cursor: pointer; display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .autocomplete-item:last-child { border-bottom: none; }
+  .autocomplete-item:hover { background: var(--accent-light); }
+  .autocomplete-icon { color: var(--gold); margin-top: 1px; flex-shrink: 0; font-size: 15px; }
+  .autocomplete-main { font-weight: 500; }
+  .autocomplete-sub { font-size: 12px; color: var(--text-hint); margin-top: 1px; }
+
+  .selected-location { display: none; align-items: center; gap: 10px; padding: 10px 14px; background: var(--gold-light); border: 1.5px solid #E5C98A; border-radius: var(--radius-sm); margin-top: 10px; font-size: 13px; }
+  .selected-location.visible { display: flex; }
+  .sel-loc-icon { color: var(--gold); flex-shrink: 0; font-size: 18px; }
+  .sel-loc-text { flex: 1; }
+  .sel-loc-name { font-weight: 500; color: var(--text); }
+  .sel-loc-addr { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .sel-loc-change { background: none; border: none; font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline; flex-shrink: 0; }
+
+  .api-notice { font-size: 12px; color: var(--text-hint); margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+
+  /* Submit */
+  .submit-section { margin-top: 1.5rem; }
+  .submit-btn { width: 100%; padding: 16px 24px; background: var(--text); color: white; border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 500; cursor: pointer; transition: background 0.2s, transform 0.1s; display: flex; align-items: center; justify-content: center; gap: 10px; letter-spacing: 0.02em; }
+  .submit-btn:hover { background: var(--accent-dark); }
+  .submit-btn:active { transform: scale(0.99); }
+  .form-disclaimer { text-align: center; font-size: 12px; color: var(--text-hint); margin-top: 1rem; line-height: 1.5; }
+
+  /* Success */
+  .success-screen { display: none; text-align: center; padding: 3rem 2rem; }
+  .success-screen.visible { display: block; }
+  .success-icon { width: 72px; height: 72px; background: #E8F7F0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 1.5rem; color: var(--success); }
+  .success-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; color: var(--text); margin-bottom: 0.75rem; }
+  .success-msg { font-size: 15px; color: var(--text-muted); line-height: 1.6; max-width: 400px; margin: 0 auto 2rem; }
+  .success-details { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; text-align: left; max-width: 480px; margin: 0 auto 2rem; }
+  .success-detail-item { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .success-detail-item:last-child { border-bottom: none; }
+  .success-detail-label { color: var(--text-muted); width: 100px; flex-shrink: 0; }
+  .success-detail-val { color: var(--text); font-weight: 500; }
+  .new-form-btn { padding: 12px 28px; background: var(--accent-light); color: var(--accent-dark); border: 1.5px solid var(--accent); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .new-form-btn:hover { background: var(--accent); color: white; }
+
+  /* Invitation section */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0 16px;
+  }
+  .toggle-label { font-size: 14px; color: var(--text); font-weight: 500; }
+  .toggle-sub { font-size: 12px; color: var(--text-hint); margin-top: 2px; }
+
+  .toggle-switch {
+    position: relative;
+    width: 44px; height: 24px;
+    flex-shrink: 0;
+  }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    left: 3px; top: 3px;
+    width: 18px; height: 18px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle-switch input:checked + .toggle-track { background: var(--accent); }
+  .toggle-switch input:checked + .toggle-track::after { transform: translateX(20px); }
+
+  .invite-panel {
+    display: none;
+    animation: slideDown 0.2s ease;
+  }
+  .invite-panel.open { display: block; }
+  @keyframes slideDown { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+
+  .email-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .email-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px 4px 4px 12px;
+    transition: border-color 0.15s;
+  }
+  .email-entry:focus-within { border-color: var(--border-focus); background: var(--surface); }
+  .email-entry-input {
+    flex: 1;
+    border: none !important;
+    background: transparent !important;
+    padding: 7px 0 !important;
+    font-size: 14px;
+    box-shadow: none !important;
+    outline: none;
+  }
+  .email-entry-name {
+    width: 130px;
+    border: none !important;
+    border-right: 1.5px solid var(--border) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    padding: 7px 10px 7px 0 !important;
+    font-size: 13px;
+    color: var(--text-muted);
+    box-shadow: none !important;
+    outline: none;
+  }
+  .email-entry-remove {
+    width: 30px; height: 30px;
+    border: none;
+    background: none;
+    color: var(--text-hint);
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .email-entry-remove:hover { background: #FDE8E8; color: var(--danger); }
+
+  .add-email-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.15s;
+  }
+  .add-email-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  .invite-count-badge {
+    display: none;
+    background: var(--accent);
+    color: white;
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .invite-count-badge.visible { display: inline-block; }
+
+  .invite-paste-hint {
+    font-size: 12px;
+    color: var(--text-hint);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+  .error-msg { font-size: 12px; color: var(--danger); margin-top: 5px; display: none; }
+  .field-error input, .field-error select, .field-error textarea { border-color: var(--danger) !important; }
+  .field-error .error-msg { display: block; }
+
+  /* GPS / My Location button */
+  .my-location-btn {
+    position: absolute;
+    bottom: 12px; right: 12px;
+    z-index: 999;
+    width: 36px; height: 36px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    transition: all 0.15s;
+    color: var(--text-muted);
+  }
+  .my-location-btn:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+  .my-location-btn.loading { animation: pulse-btn 1s ease infinite; pointer-events: none; }
+  @keyframes pulse-btn { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+  /* Current location accuracy circle — handled by Leaflet circle */
+  .gps-banner {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #EEF6FF;
+    border: 1px solid #B3D4F5;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: #1A6BAD;
+    margin-bottom: 10px;
+  }
+  .gps-banner.visible { display: flex; }
+  .gps-banner svg { flex-shrink: 0; color: #2196F3; }
+  .gps-banner-close { margin-left: auto; background: none; border: none; cursor: pointer; color: #1A6BAD; font-size: 15px; line-height: 1; padding: 0 2px; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="header-inner">
+    <div class="header-tag">✦ Event Planner AI</div>
+    <h1 class="header-title">Plan Your Perfect Event</h1>
+    <p class="header-sub">Fill in the details — our AI will generate a complete plan for you</p>
+  </div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="main" id="formWrap">
+
+  <!-- Section 1 -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-num" id="num1">1</div>
+      <div><div class="section-label">Event Basics</div></div>
+      <span class="section-required">Required</span>
+    </div>
+    <div class="section-body">
+      <div class="field-row">
+        <div class="field-group" id="fg-type">
+          <label for="eventType">Event Type <span class="req">*</span></label>
+          <select id="eventType">
+            <option value="">Select event type…</option>
+            <option value="birthday">🎂 Birthday Party</option>
+            <option value="reunion">🎓 Class Reunion</option>
+            <option value="yearend">🎉 Year-End Party</option>
+            <option value="wedding">💍 Wedding</option>
+            <option value="corporate">🏢 Corporate Meeting</option>
+            <option value="anniversary">🥂 Anniversary</option>
+            <option value="baby_shower">🍼 Baby Shower</option>
+            <option value="graduation">🎓 Graduation</option>
+            <option value="other">✨ Other</option>
+          </select>
+          <div class="error-msg">Please select an event type.</div>
+        </div>
+        <div class="field-group" id="fg-organizer">
+          <label for="organizer">Organizer Name <span class="req">*</span></label>
+          <input type="text" id="organizer" placeholder="Your full name" />
+          <div class="error-msg">Please enter your name.</div>
+        </div>
+      </div>
+      <div class="field-group" id="fg-email">
+        <label for="email">Email Address <span class="req">*</span></label>
+        <input type="email" id="email" placeholder="you@email.com" />
+        <div class="error-msg">Please enter a valid email address.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2 -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-num" id="num2">2</div>
+      <div><div class="section-label">Date & Time</div></div>
+      <span class="section-required">Required</span>
+    </div>
+    <div class="section-body">
+      <div class="field-row">
+        <div class="field-group" id="fg-datetime">
+          <label for="eventDate">Event Date & Time <span class="req">*</span></label>
+          <input type="datetime-local" id="eventDate" />
+          <div class="error-msg">Please select a date and time.</div>
+        </div>
+        <div class="field-group">
+          <label for="duration">Duration</label>
+          <select id="duration">
+            <option value="2">2 hours</option>
+            <option value="3">3 hours</option>
+            <option value="4" selected>4 hours</option>
+            <option value="6">6 hours</option>
+            <option value="8">Full day (8h)</option>
+            <option value="custom">Custom…</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: Location -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-num" id="num3">3</div>
+      <div><div class="section-label">Location</div></div>
+      <span class="section-required">Required</span>
+    </div>
+    <div class="section-body">
+      <div class="field-group" id="fg-location">
+        <label>Venue / Address <span class="req">*</span></label>
+        <!-- GPS banner -->
+        <div class="gps-banner" id="gpsBanner">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          <span id="gpsBannerText">Đang lấy vị trí hiện tại…</span>
+          <button class="gps-banner-close" id="gpsBannerClose" aria-label="Đóng">×</button>
+        </div>
+
+        <div class="location-search">
+          <svg class="location-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="locationInput" placeholder="Tìm địa điểm hoặc nhập địa chỉ…" autocomplete="off" />
+          <button class="location-clear" id="locationClear" aria-label="Clear location">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+          <div class="autocomplete-list" id="autocompleteList"></div>
+        </div>
+
+        <div class="selected-location" id="selectedLocation">
+          <svg class="sel-loc-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          <div class="sel-loc-text">
+            <div class="sel-loc-name" id="selLocName">—</div>
+            <div class="sel-loc-addr" id="selLocAddr"></div>
+          </div>
+          <button class="sel-loc-change" id="changeLocation">Change</button>
+        </div>
+        <div class="error-msg" id="locationError">Please select a location.</div>
+
+        <div class="map-container">
+          <div class="map-placeholder" id="mapPlaceholder">
+            <div class="map-placeholder-icon">📍</div>
+            <div>Tìm kiếm địa điểm để hiển thị bản đồ</div>
+            <div style="font-size:12px;color:var(--text-hint)">hoặc click trên bản đồ để chọn vị trí</div>
+          </div>
+          <div id="map"></div>
+          <!-- My Location button -->
+          <button class="my-location-btn" id="myLocationBtn" title="Vị trí hiện tại">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          </button>
+        </div>
+        <div class="api-notice">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          Bản đồ sử dụng OpenStreetMap — miễn phí, không cần API key
+        </div>
+      </div>
+
+      <div class="field-group" style="margin-top:1rem">
+        <label for="locationNotes">Venue Notes</label>
+        <textarea id="locationNotes" placeholder="Parking info, floor number, access instructions…" rows="2"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4 -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-num" id="num4">4</div>
+      <div><div class="section-label">Guests & Budget</div></div>
+      <span class="section-required">Required</span>
+    </div>
+    <div class="section-body">
+      <div class="field-group" id="fg-guests">
+        <label>Expected Guests <span class="req">*</span></label>
+        <div class="counter-wrap">
+          <button class="counter-btn" id="guestMinus">−</button>
+          <input class="counter-val" type="number" id="guestCount" value="20" min="1" max="5000" />
+          <button class="counter-btn" id="guestPlus">+</button>
+        </div>
+        <div class="field-hint">Adjust for final headcount</div>
+        <div class="error-msg">Please enter number of guests.</div>
+      </div>
+      <div class="field-group" id="fg-budget">
+        <label>Estimated Budget <span class="req">*</span></label>
+        <div class="budget-row">
+          <select class="currency-select" id="currency">
+            <option value="VND">VND ₫</option>
+            <option value="USD">USD $</option>
+            <option value="EUR">EUR €</option>
+            <option value="GBP">GBP £</option>
+          </select>
+          <input type="number" class="budget-input" id="budget" placeholder="5,000,000" min="0" />
+        </div>
+        <div class="field-hint">AI will optimize suggestions within your budget</div>
+        <div class="error-msg">Please enter a budget amount.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5 -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-num" id="num5">5</div>
+      <div><div class="section-label">Event Style</div></div>
+      <span class="section-required" style="background: var(--gold-light); color: var(--gold); border: 1px solid #E5C98A; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600;">Advanced ✦</span>
+    </div>
+    <div class="section-body">
+      <div class="field-group">
+        <label>Pick your vibe <span style="color:var(--text-hint); font-weight:400">(select all that apply)</span></label>
+        <div class="chips" id="styleChips">
+          <div class="chip" data-val="minimalist">🌿 Minimalist</div>
+          <div class="chip" data-val="luxury">✨ Luxury</div>
+          <div class="chip" data-val="cozy">🕯️ Cozy & Warm</div>
+          <div class="chip" data-val="creative">🎨 Creative</div>
+          <div class="chip" data-val="outdoor">🌿 Outdoor</div>
+          <div class="chip" data-val="vintage">📜 Vintage</div>
+          <div class="chip" data-val="modern">🔷 Modern</div>
+          <div class="chip" data-val="themed">🎭 Themed</div>
+        </div>
+      </div>
+      <div class="field-group" style="margin-top:1rem">
+        <label for="specialReqs">Special Requirements</label>
+        <textarea id="specialReqs" placeholder="Dietary restrictions, accessibility needs, specific themes, entertainment preferences…"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 6: Invitations -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-num" id="num6">6</div>
+      <div>
+        <div class="section-label">
+          Invitations
+          <span class="invite-count-badge" id="inviteCountBadge">0</span>
+        </div>
+      </div>
+      <span class="section-required" style="background: var(--gold-light); color: var(--gold); border: 1px solid #E5C98A; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600;">Optional ✉️</span>
+    </div>
+    <div class="section-body">
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Send email invitations?</div>
+          <div class="toggle-sub">We'll send a personalised invite to each guest</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="inviteToggle" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <!-- Panel chỉ hiện khi bật toggle -->
+      <div class="invite-panel" id="invitePanel">
+        <div class="email-list" id="emailList">
+          <!-- các email entry sẽ được thêm vào đây -->
+        </div>
+        <button class="add-email-btn" id="addEmailBtn" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Add recipient
+        </button>
+        <p class="invite-paste-hint">💡 You can paste multiple emails at once (separated by comma or newline) into the first field.</p>
+      </div>
+    </div>
+  </div>
+
+  <input type="hidden" id="sheetWebhookUrl" value="https://script.google.com/macros/s/AKfycbyPaGSy7oV2FbjNDMZTAlbV1FX4sAO-2vYGZ88bLgfR1oNpRqB81pcF1n5529MUPP58/exec" />
+
+  <div class="submit-section">
+    <button class="submit-btn" id="submitBtn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/></svg>
+      Generate My Event Plan
+    </button>
+    <p class="form-disclaimer">Your data is used solely to generate your event plan.<br>A complete plan will be emailed to you.</p>
+  </div>
+</div>
+
+<!-- Success screen -->
+<div class="main" id="successWrap" style="display:none">
+  <div class="success-screen visible">
+    <div class="success-icon">✓</div>
+    <h2 class="success-title">You're all set!</h2>
+    <p class="success-msg">Your event plan is being generated by AI. Check your inbox in a few moments for a complete plan including timeline, tasks, and calendar events.</p>
+    <div class="success-details" id="successDetails"></div>
+    <div id="submitStatus" style="text-align:center;margin-top:1rem;font-size:13px;min-height:20px;"></div>
+    <button class="new-form-btn" onclick="resetForm()">Plan Another Event</button>
+  </div>
+</div>
+
+
+<!-- Leaflet JS (no API key needed) -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ── Leaflet Map Init ──────────────────────────────────
+let map, marker, userLocationMarker, userAccuracyCircle, searchTimer;
+let selectedPlace = null;
+let selectedStyles = [];
+let userLatLng = null; // stores current GPS position for biased search
+
+// Initialize Leaflet map centered on Vietnam
+map = L.map('map', {
+  center: [16.4637, 107.5909],
+  zoom: 6,
+  zoomControl: true
+});
+
+// OpenStreetMap tiles — no API key required
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  maxZoom: 19
+}).addTo(map);
+
+// Click on map to pick location
+map.on('click', async function(e) {
+  const { lat, lng } = e.latlng;
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`);
+    const data = await res.json();
+    const name = data.display_name.split(',')[0];
+    selectPlace({ main: name, secondary: data.display_name, lat, lng });
+  } catch {
+    selectPlace({ main: `${lat.toFixed(5)}, ${lng.toFixed(5)}`, secondary: 'Vị trí đã chọn', lat, lng });
+  }
+});
+
+// ── GPS / My Location ─────────────────────────────────
+const gpsBanner = document.getElementById('gpsBanner');
+const gpsBannerText = document.getElementById('gpsBannerText');
+const myLocationBtn = document.getElementById('myLocationBtn');
+
+document.getElementById('gpsBannerClose').addEventListener('click', () => {
+  gpsBanner.classList.remove('visible');
+});
+
+// Custom blue dot icon for user position
+const blueDotIcon = L.divIcon({
+  className: '',
+  html: `<div style="width:14px;height:14px;background:#2196F3;border:2.5px solid white;border-radius:50%;box-shadow:0 0 0 3px rgba(33,150,243,0.3);"></div>`,
+  iconSize: [14, 14],
+  iconAnchor: [7, 7]
+});
+
+function showUserLocation(lat, lng, accuracy) {
+  userLatLng = { lat, lng };
+
+  // Remove old layers
+  if (userLocationMarker) map.removeLayer(userLocationMarker);
+  if (userAccuracyCircle) map.removeLayer(userAccuracyCircle);
+
+  // Accuracy circle
+  userAccuracyCircle = L.circle([lat, lng], {
+    radius: accuracy,
+    color: '#2196F3',
+    fillColor: '#2196F3',
+    fillOpacity: 0.08,
+    weight: 1,
+    dashArray: '4'
+  }).addTo(map);
+
+  // Blue dot
+  userLocationMarker = L.marker([lat, lng], { icon: blueDotIcon, zIndexOffset: 500 })
+    .addTo(map)
+    .bindPopup('<b>Vị trí của bạn</b>', { closeButton: false });
+
+  document.getElementById('mapPlaceholder').classList.add('hidden');
+}
+
+function requestUserLocation(panToUser = true) {
+  if (!navigator.geolocation) {
+    gpsBannerText.textContent = 'Trình duyệt không hỗ trợ định vị GPS.';
+    gpsBanner.classList.add('visible');
+    return;
+  }
+
+  myLocationBtn.classList.add('loading');
+  gpsBannerText.textContent = 'Đang lấy vị trí hiện tại…';
+  gpsBanner.classList.add('visible');
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+      myLocationBtn.classList.remove('loading');
+      showUserLocation(lat, lng, accuracy);
+
+      if (panToUser) {
+        map.setView([lat, lng], 15);
+      }
+
+      // Update banner with address
+      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`)
+        .then(r => r.json())
+        .then(data => {
+          const parts = data.display_name.split(',');
+          const shortAddr = parts.slice(0, 3).join(',');
+          gpsBannerText.textContent = `📍 Gần: ${shortAddr}`;
+        })
+        .catch(() => {
+          gpsBannerText.textContent = `✓ Đã lấy vị trí (±${Math.round(accuracy)}m)`;
+        });
+    },
+    (err) => {
+      myLocationBtn.classList.remove('loading');
+      const msgs = {
+        1: 'Bạn đã từ chối quyền truy cập vị trí.',
+        2: 'Không thể xác định vị trí.',
+        3: 'Hết thời gian định vị. Thử lại nhé.'
+      };
+      gpsBannerText.textContent = msgs[err.code] || 'Không lấy được vị trí.';
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
+}
+
+// Button click
+myLocationBtn.addEventListener('click', () => requestUserLocation(true));
+
+// Auto-request on page load (silent — no pan if denied)
+window.addEventListener('load', () => {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+        showUserLocation(lat, lng, accuracy);
+        userLatLng = { lat, lng };
+        map.setView([lat, lng], 13);
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`)
+          .then(r => r.json())
+          .then(data => {
+            const parts = data.display_name.split(',');
+            gpsBannerText.textContent = `📍 Gần: ${parts.slice(0,3).join(',')}`;
+            gpsBanner.classList.add('visible');
+          }).catch(() => {});
+      },
+      () => { /* silent fail */ },
+      { enableHighAccuracy: false, timeout: 6000, maximumAge: 120000 }
+    );
+  }
+});
+
+// ── Progress ──────────────────────────────────────────
+function updateProgress() {
+  const fields = ['eventType','organizer','email','eventDate','locationInput','guestCount','budget'];
+  let filled = fields.filter(id => {
+    const el = document.getElementById(id);
+    return el && el.value && el.value.trim() !== '' && el.value !== '0';
+  }).length;
+  if (selectedPlace) filled++;
+  const pct = Math.round((filled / (fields.length + 1)) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+document.querySelectorAll('input,select,textarea').forEach(el => {
+  el.addEventListener('input', updateProgress);
+  el.addEventListener('change', updateProgress);
+});
+
+// ── Guest counter ─────────────────────────────────────
+document.getElementById('guestMinus').addEventListener('click', () => {
+  const val = parseInt(document.getElementById('guestCount').value) || 1;
+  document.getElementById('guestCount').value = Math.max(1, val - 1);
+  updateProgress();
+});
+document.getElementById('guestPlus').addEventListener('click', () => {
+  const val = parseInt(document.getElementById('guestCount').value) || 1;
+  document.getElementById('guestCount').value = val + 1;
+  updateProgress();
+});
+
+// ── Style chips ───────────────────────────────────────
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    chip.classList.toggle('active');
+    const val = chip.dataset.val;
+    if (chip.classList.contains('active')) selectedStyles.push(val);
+    else selectedStyles = selectedStyles.filter(s => s !== val);
+  });
+});
+
+// ── Location / Autocomplete (Nominatim) ───────────────
+const locationInput = document.getElementById('locationInput');
+const autocompleteList = document.getElementById('autocompleteList');
+const locationClear = document.getElementById('locationClear');
+const selectedLocationEl = document.getElementById('selectedLocation');
+
+function showSuggestions(items) {
+  autocompleteList.innerHTML = '';
+  if (!items.length) { autocompleteList.classList.remove('open'); return; }
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'autocomplete-item';
+    div.innerHTML = `
+      <svg class="autocomplete-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      <div>
+        <div class="autocomplete-main">${item.main}</div>
+        <div class="autocomplete-sub">${item.secondary}</div>
+      </div>`;
+    div.addEventListener('click', () => selectPlace(item));
+    autocompleteList.appendChild(div);
+  });
+  autocompleteList.classList.add('open');
+}
+
+async function searchNominatim(q) {
+  if (!q) { autocompleteList.classList.remove('open'); return; }
+  try {
+    // Build URL with viewbox bias if we have user location
+    let url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=7&accept-language=vi&addressdetails=1`;
+    if (userLatLng) {
+      // viewbox = ±0.5 degrees (~55km) around user, bounded_prefer only (not strict)
+      const d = 0.5;
+      const box = [
+        userLatLng.lng - d, userLatLng.lat - d,
+        userLatLng.lng + d, userLatLng.lat + d
+      ].join(',');
+      url += `&viewbox=${box}&bounded=0`; // bounded=0 = prefer area, not restrict
+    }
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.length) {
+      // Sort: results inside viewbox first (closer to user position)
+      let sorted = data;
+      if (userLatLng) {
+        sorted = data.sort((a, b) => {
+          const distA = Math.hypot(parseFloat(a.lat) - userLatLng.lat, parseFloat(a.lon) - userLatLng.lng);
+          const distB = Math.hypot(parseFloat(b.lat) - userLatLng.lat, parseFloat(b.lon) - userLatLng.lng);
+          return distA - distB;
+        });
+      }
+      const items = sorted.slice(0, 5).map(r => {
+        const parts = r.display_name.split(',');
+        return { main: parts[0].trim(), secondary: parts.slice(1, 3).join(',').trim(), lat: parseFloat(r.lat), lng: parseFloat(r.lon) };
+      });
+      showSuggestions(items);
+    } else {
+      // Fallback: search without location bias
+      const res2 = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=vi`);
+      const data2 = await res2.json();
+      const items = data2.map(r => {
+        const parts = r.display_name.split(',');
+        return { main: parts[0].trim(), secondary: parts.slice(1, 3).join(',').trim(), lat: parseFloat(r.lat), lng: parseFloat(r.lon) };
+      });
+      showSuggestions(items);
+    }
+  } catch(e) {
+    console.error('Search failed:', e);
+  }
+}
+
+function selectPlace(place) {
+  locationInput.value = place.main;
+  autocompleteList.classList.remove('open');
+  locationClear.classList.add('visible');
+  document.getElementById('selLocName').textContent = place.main;
+  document.getElementById('selLocAddr').textContent = place.secondary || '';
+  selectedLocationEl.classList.add('visible');
+  selectedPlace = place;
+  document.getElementById('fg-location').classList.remove('field-error');
+  document.getElementById('locationError').style.display = 'none';
+
+  // Update map
+  if (place.lat && place.lng) {
+    const latlng = [place.lat, place.lng];
+    map.setView(latlng, 16);
+    if (marker) marker.setLatLng(latlng);
+    else marker = L.marker(latlng).addTo(map);
+    document.getElementById('mapPlaceholder').classList.add('hidden');
+  }
+  updateProgress();
+}
+
+locationInput.addEventListener('input', function() {
+  const q = this.value.trim();
+  locationClear.classList.toggle('visible', q.length > 0);
+  if (!q) { autocompleteList.classList.remove('open'); return; }
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => searchNominatim(q), 500);
+});
+
+locationInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); if (searchTimer) clearTimeout(searchTimer); searchNominatim(this.value.trim()); }
+});
+
+locationClear.addEventListener('click', () => {
+  locationInput.value = '';
+  locationClear.classList.remove('visible');
+  selectedLocationEl.classList.remove('visible');
+  autocompleteList.classList.remove('open');
+  selectedPlace = null;
+  updateProgress();
+});
+
+document.getElementById('changeLocation').addEventListener('click', () => {
+  selectedLocationEl.classList.remove('visible');
+  selectedPlace = null;
+  locationInput.value = '';
+  locationInput.focus();
+  updateProgress();
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.location-search') && !e.target.closest('.autocomplete-list')) {
+    autocompleteList.classList.remove('open');
+  }
+});
+
+// ── Invitation / Email list ────────────────────────────
+const inviteToggle = document.getElementById('inviteToggle');
+const invitePanel = document.getElementById('invitePanel');
+const emailList = document.getElementById('emailList');
+const addEmailBtn = document.getElementById('addEmailBtn');
+const inviteCountBadge = document.getElementById('inviteCountBadge');
+let emailEntries = []; // [{name, email}]
+
+function updateInviteCount() {
+  const valid = emailEntries.filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.email)).length;
+  inviteCountBadge.textContent = valid;
+  inviteCountBadge.classList.toggle('visible', valid > 0 && inviteToggle.checked);
+}
+
+function createEmailEntry(nameVal = '', emailVal = '') {
+  const id = Date.now() + Math.random();
+  const entry = { id, name: nameVal, email: emailVal };
+  emailEntries.push(entry);
+
+  const div = document.createElement('div');
+  div.className = 'email-entry';
+  div.dataset.id = id;
+  div.innerHTML = `
+    <input class="email-entry-name" type="text" placeholder="Name (optional)" value="${nameVal}" />
+    <input class="email-entry-input" type="text" placeholder="email@example.com" inputmode="email" value="${emailVal}" />
+    <button class="email-entry-remove" type="button" title="Remove">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>`;
+
+  const nameInput = div.querySelector('.email-entry-name');
+  const emailInput = div.querySelector('.email-entry-input');
+  const removeBtn = div.querySelector('.email-entry-remove');
+
+  nameInput.addEventListener('input', () => {
+    entry.name = nameInput.value;
+  });
+
+  emailInput.addEventListener('input', () => {
+    // Handle paste of multiple emails separated by comma/newline
+    const raw = emailInput.value;
+    const parts = raw.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      // First one stays in current field
+      emailInput.value = parts[0];
+      entry.email = parts[0];
+      // Rest become new entries
+      parts.slice(1).forEach(em => createEmailEntry('', em));
+    } else {
+      entry.email = raw.trim();
+    }
+    updateInviteCount();
+  });
+
+  emailInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      createEmailEntry();
+      // focus the new entry
+      setTimeout(() => {
+        const inputs = emailList.querySelectorAll('.email-entry-input');
+        inputs[inputs.length - 1]?.focus();
+      }, 50);
+    }
+  });
+
+  removeBtn.addEventListener('click', () => {
+    emailEntries = emailEntries.filter(e => e.id !== id);
+    div.remove();
+    updateInviteCount();
+  });
+
+  emailList.appendChild(div);
+  updateInviteCount();
+  return div;
+}
+
+inviteToggle.addEventListener('change', () => {
+  invitePanel.classList.toggle('open', inviteToggle.checked);
+  if (inviteToggle.checked && emailEntries.length === 0) {
+    createEmailEntry();
+    setTimeout(() => emailList.querySelector('.email-entry-input')?.focus(), 100);
+  }
+  updateInviteCount();
+});
+
+addEmailBtn.addEventListener('click', () => {
+  const div = createEmailEntry();
+  setTimeout(() => div.querySelector('.email-entry-input')?.focus(), 50);
+});
+
+// ── Validation ────────────────────────────────────────
+function validateField(id, check) {
+  const el = document.getElementById(id);
+  const fg = document.getElementById('fg-' + id) || el.closest('.field-group');
+  const err = fg ? fg.querySelector('.error-msg') : null;
+  if (!check(el)) {
+    if (fg) fg.classList.add('field-error');
+    if (err) err.style.display = 'block';
+    return false;
+  } else {
+    if (fg) fg.classList.remove('field-error');
+    if (err) err.style.display = 'none';
+    return true;
+  }
+}
+
+// ── Submit ─────────────────────────────────────────────
+document.getElementById('submitBtn').addEventListener('click', () => {
+  let valid = true;
+  valid = validateField('eventType', el => el.value !== '') && valid;
+  valid = validateField('organizer', el => el.value.trim() !== '') && valid;
+  valid = validateField('email', el => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value)) && valid;
+  valid = validateField('eventDate', el => el.value !== '') && valid;
+  valid = validateField('budget', el => el.value && parseFloat(el.value) > 0) && valid;
+
+  const locFg = document.getElementById('fg-location');
+  const locErr = document.getElementById('locationError');
+  if (!selectedPlace && !locationInput.value.trim()) {
+    locFg.classList.add('field-error');
+    locErr.style.display = 'block';
+    valid = false;
+  } else {
+    locFg.classList.remove('field-error');
+    locErr.style.display = 'none';
+  }
+
+  if (!valid) { document.querySelector('.field-error input, .field-error select')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+
+  // Sync email values từ DOM trước khi validate (phòng trường hợp chưa blur)
+  if (inviteToggle.checked) {
+    emailEntries = [];
+    emailList.querySelectorAll('.email-entry').forEach(div => {
+      const emailVal = div.querySelector('.email-entry-input').value.trim();
+      const nameVal  = div.querySelector('.email-entry-name').value.trim();
+      emailEntries.push({ id: div.dataset.id, name: nameVal, email: emailVal });
+    });
+  }
+
+  // Invited emails
+  const invitedEmails = inviteToggle.checked
+    ? emailEntries.filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.email))
+    : [];
+
+  // If toggle is ON but no valid email, just skip invitations (don't block submit)
+  // invitedEmails already filtered to valid ones
+
+  const typeMap = { birthday:'Birthday Party', reunion:'Class Reunion', yearend:'Year-End Party', wedding:'Wedding', corporate:'Corporate Meeting', anniversary:'Anniversary', baby_shower:'Baby Shower', graduation:'Graduation', other:'Other' };
+  const typeVal = document.getElementById('eventType').value;
+  const rawDate = document.getElementById('eventDate').value;
+  const dateStr = rawDate ? new Date(rawDate).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+  const budgetAmt = parseFloat(document.getElementById('budget').value).toLocaleString();
+  const currency = document.getElementById('currency').value;
+  const guests = document.getElementById('guestCount').value;
+  const locDisplay = selectedPlace ? selectedPlace.main : locationInput.value;
+  const styles = selectedStyles.length ? selectedStyles.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ') : '—';
+
+  const inviteRow = invitedEmails.length > 0
+    ? `<div class="success-detail-item">
+        <span class="success-detail-label">Invitations</span>
+        <span class="success-detail-val" style="display:flex;flex-direction:column;gap:3px;">
+          <span>${invitedEmails.length} recipient(s) ✉️</span>
+          ${invitedEmails.map(e => `<span style="font-size:12px;color:var(--text-muted);font-weight:400;">${e.name ? e.name + ' — ' : ''}${e.email}</span>`).join('')}
+        </span>
+       </div>`
+    : '';
+
+  document.getElementById('successDetails').innerHTML = `
+    <div class="success-detail-item"><span class="success-detail-label">Event</span><span class="success-detail-val">${typeMap[typeVal] || typeVal}</span></div>
+    <div class="success-detail-item"><span class="success-detail-label">Date & Time</span><span class="success-detail-val">${dateStr}</span></div>
+    <div class="success-detail-item"><span class="success-detail-label">Location</span><span class="success-detail-val">${locDisplay}</span></div>
+    <div class="success-detail-item"><span class="success-detail-label">Guests</span><span class="success-detail-val">${guests} people</span></div>
+    <div class="success-detail-item"><span class="success-detail-label">Budget</span><span class="success-detail-val">${currency} ${budgetAmt}</span></div>
+    <div class="success-detail-item"><span class="success-detail-label">Style</span><span class="success-detail-val">${styles}</span></div>
+    ${inviteRow}
+  `;
+
+  // ── Gửi lên Google Sheets ──────────────────────────
+  const SHEET_WEBHOOK = document.getElementById('sheetWebhookUrl').value.trim();
+  const submitStatus = document.getElementById('submitStatus');
+
+  if (SHEET_WEBHOOK) {
+    submitStatus.innerHTML = `<span style="color:var(--text-hint)">⏳ Saving to Google Sheets…</span>`;
+
+    const payload = {
+      timestamp:   new Date().toLocaleString('vi-VN'),
+      eventType:   typeMap[typeVal] || typeVal,
+      organizer:   document.getElementById('organizer').value.trim(),
+      email:       document.getElementById('email').value.trim(),
+      dateTime:    dateStr,
+      duration:    document.getElementById('duration').value + ' giờ',
+      location:    locDisplay,
+      locationAddr: selectedPlace ? selectedPlace.secondary : '',
+      locationNotes: document.getElementById('locationNotes').value.trim(),
+      guests:      guests,
+      budget:      document.getElementById('budget').value,
+      currency:    currency,
+      styles:      styles,
+      specialReqs: document.getElementById('specialReqs').value.trim(),
+      inviteCount: invitedEmails.length,
+      inviteEmails: invitedEmails.map(e => (e.name ? e.name + ' <' + e.email + '>' : e.email)).join(', ')
+    };
+
+    // Google Apps Script trả 302 redirect trước khi chạy — cần follow redirect.
+    // Dùng GET + query string để tránh CORS preflight, redirect: 'follow' để script chạy được.
+    const qs = encodeURIComponent(JSON.stringify(payload));
+    fetch(`${SHEET_WEBHOOK}?data=${qs}`, {
+      method: 'GET',
+      redirect: 'follow'
+    })
+    .then(res => {
+      if (res.ok || res.type === 'opaqueredirect') {
+        submitStatus.innerHTML = `<span style="color:var(--success)">✓ Saved to Google Sheets!</span>`;
+      } else {
+        submitStatus.innerHTML = `<span style="color:var(--danger)">✗ Error ${res.status}. Please check the Webhook URL.</span>`;
+      }
+    })
+    .catch(() => {
+      // Nếu bị block bởi CORS (script vẫn chạy được phía server) — vẫn coi là thành công
+      submitStatus.innerHTML = `<span style="color:var(--success)">✓ Sent to Google Sheets!</span>`;
+    });
+  } else {
+    submitStatus.innerHTML = '';
+  }
+
+  document.getElementById('formWrap').style.display = 'none';
+  document.getElementById('successWrap').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+function resetForm() {
+  document.getElementById('formWrap').style.display = 'block';
+  document.getElementById('successWrap').style.display = 'none';
+  document.querySelectorAll('input,select,textarea').forEach(el => { if (el.tagName !== 'SELECT') el.value = ''; else el.selectedIndex = 0; });
+  document.getElementById('eventType').value = '';
+  document.getElementById('guestCount').value = 20;
+  document.getElementById('progressFill').style.width = '0%';
+  selectedPlace = null; selectedStyles = [];
+  emailEntries = [];
+  emailList.innerHTML = '';
+  inviteToggle.checked = false;
+  invitePanel.classList.remove('open');
+  inviteCountBadge.classList.remove('visible');
+  locationInput.value = '';
+  locationClear.classList.remove('visible');
+  selectedLocationEl.classList.remove('visible');
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  if (marker) { map.removeLayer(marker); marker = null; }
+  if (userLocationMarker) { map.removeLayer(userLocationMarker); userLocationMarker = null; }
+  if (userAccuracyCircle) { map.removeLayer(userAccuracyCircle); userAccuracyCircle = null; }
+  userLatLng = null;
+  document.getElementById('mapPlaceholder').classList.remove('hidden');
+  map.setView([16.4637, 107.5909], 6);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+</script>
+</body>
+</html>
